@@ -1,0 +1,92 @@
+
+// Developer: Forex Robot Easy Team
+// Developer's Site: forexroboteasy.com
+// Program Name: Pips Generator
+
+#property copyright 'Forex Robot Easy Team'
+#property link    'forexroboteasy.com'
+#property version '1.00'
+
+// Indicator inputs
+input int       ChannelPeriod = 20;     // Channel period
+input double    EntryThreshold = 0.5;    // Entry threshold
+input double    ExitThreshold = 0.8;     // Exit threshold
+input ENUM_TIMEFRAMES Timeframe = PERIOD_H1; // Timeframe selection
+
+// Indicator buffers
+double          SignalBuffer[];
+double          ExitBuffer[];
+
+//+------------------------------------------------------------------+
+//| Custom indicator initialization function                         |
+//+------------------------------------------------------------------+
+int OnInit()
+{
+    // Set indicator buffers
+    SetIndexBuffer(0, SignalBuffer);
+    SetIndexBuffer(1, ExitBuffer);
+
+    // Set indicator labels
+    SetIndexLabel(0, 'Signal');
+    SetIndexLabel(1, 'Exit');
+
+    // Set indicator colors
+    SetIndexStyle(0, DRAW_ARROW, EMPTY, Blue);
+    SetIndexStyle(1, DRAW_STAR, EMPTY, Red);
+
+    // Set indicator parameters
+    SetIndexDrawBegin(0, ChannelPeriod);
+    SetIndexDrawBegin(1, ChannelPeriod);
+
+    return(INIT_SUCCEEDED);
+}
+
+//+------------------------------------------------------------------+
+//| Custom indicator iteration function                              |
+//+------------------------------------------------------------------+
+int OnCalculate(const int rates_total,
+                const int prev_calculated,
+                const datetime &time[],
+                const double &open[],
+                const double &high[],
+                const double &low[],
+                const double &close[],
+                const long &tick_volume[],
+                const long &volume[],
+                const int &spread[])
+{
+    // Calculate channel boundaries
+    for (int i = ChannelPeriod; i < rates_total; i++)
+    {
+        double maxHigh = High[i - ChannelPeriod];
+        double minLow = Low[i - ChannelPeriod];
+
+        for (int j = i - ChannelPeriod + 1; j <= i; j++)
+        {
+            if (High[j] > maxHigh)
+                maxHigh = High[j];
+            if (Low[j] < minLow)
+                minLow = Low[j];
+        }
+
+        // Calculate channel range
+        double channelRange = maxHigh - minLow;
+
+        // Calculate entry and exit signals
+        double entrySignal = (close[i] - minLow) / channelRange;
+        double exitSignal = (maxHigh - close[i]) / channelRange;
+
+        // Check if entry and exit signals meet the threshold
+        if (entrySignal >= EntryThreshold)
+            SignalBuffer[i] = High[i];
+        else
+            SignalBuffer[i] = 0;
+
+        if (exitSignal >= ExitThreshold)
+            ExitBuffer[i] = Low[i];
+        else
+            ExitBuffer[i] = 0;
+    }
+
+    return(rates_total);
+}
